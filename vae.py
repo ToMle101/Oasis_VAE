@@ -174,3 +174,24 @@ def train_vae(
     print("Training finished. UMAP saved as latent_umap.png")
 
     return model
+
+"""
+Main
+"""
+if __name__ == '__main__':
+    base_path = '/home/groups/comp3710/OASIS/'
+    train_dir = os.path.join(base_path, 'keras_png_slices_train')
+    test_dir = os.path.join(base_path, 'keras_png_slices_test')
+
+    model = train_vae(
+        data_dir_train=train_dir,
+        data_dir_test=test_dir,
+        img_size=64,
+        batch_size=128,
+        test_batch=200,
+        hidden_size=1024,
+        latent_size=8,    
+        lr=1e-3,
+        epochs=30,
+        beta=1.0
+    )
