@@ -101,3 +101,12 @@ class VAE(nn.Module):
         z, mu, logvar = self.latent(h)
         x_recon = self.decoder(z)
         return x_recon, mu, logvar, z
+
+
+"""
+Loss function for VAE
+"""
+def vae_loss(recon_x, x, mu, logvar, beta=1.0):
+    recon_loss = F.binary_cross_entropy(recon_x, x, reduction='sum')
+    kl = -0.5 * torch.sum(1 + logvar - mu.pow(2) - logvar.exp())
+    return recon_loss + beta * kl, recon_loss, kl
