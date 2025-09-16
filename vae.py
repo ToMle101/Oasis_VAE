@@ -1,12 +1,17 @@
-import torch
-import torch.nn as nn
-import torchvision.transforms as transforms
-from torch.utils.data import Dataset, DataLoader
-from torch.nn import functional as F
-import torch.optim as optim
-from PIL import Image
+
 import os
 import glob
+from PIL import Image
+import torch
+import torch.nn as nn
+import torch.nn.functional as F
+from torch.utils.data import Dataset, DataLoader
+import torchvision.transforms as transforms
+import torch.optim as optim
+import matplotlib.pyplot as plt
+import numpy as np
+from tqdm import tqdm
+import umap
 
 """
 Dataset calss to load OASIS brain MRI images from PNG files.
@@ -110,3 +115,30 @@ def vae_loss(recon_x, x, mu, logvar, beta=1.0):
     recon_loss = F.binary_cross_entropy(recon_x, x, reduction='sum')
     kl = -0.5 * torch.sum(1 + logvar - mu.pow(2) - logvar.exp())
     return recon_loss + beta * kl, recon_loss, kl
+
+"""
+Visualization: UMAP
+"""
+def plot_latent_umap(model, device, dataloader, img_size, fname='latent_umap.png', max_points=2000):
+    model.eval()
+    mus = []
+    with torch.no_grad():
+        for batch in dataloader:
+            batch = batch.to(device)
+            x = batch.view(batch.size(0), -1)
+            _, mu, _, _ = model(x)
+            mus.append(mu.cpu().numpy())
+            if sum(len(m) for m in mus) >= max_points:
+                break
+    mus = np.concatenate(mus, axis=0)
+    mus = mus[:max_points]
+
+    reducer = umap.UMAP(n_components=2, random_state=42)
+    emb2d = reducer.fit_transform(mus)
+
+    plt.figure(figsize=(6,6))
+    plt.scatter(emb2d[:,0], emb2d[:,1], s=5, alpha=0.7)
+    plt.title('Latent space UMAP projection')
+    plt.axis('off')
+    plt.savefig(fname, bbox_inches='tight')
+    plt.close()
