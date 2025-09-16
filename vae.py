@@ -34,26 +34,6 @@ class OASISDataset(Dataset):
             image = self.transform(image)
         return image
 
-transform = transforms.Compose([
-    transforms.Resize((64, 64)),
-    transforms.ToTensor()  
-])
-
-# Use the existing train/validation/test splits
-base_path = '/home/groups/comp3710/OASIS/'
-
-trainset = OASISDataset(
-    data_dir=base_path + 'keras_png_slices_train/',
-    transform=transform
-)
-train_loader = torch.utils.data.DataLoader(trainset, batch_size=128, shuffle=True)
-
-testset = OASISDataset(
-    data_dir=base_path + 'keras_png_slices_test/',
-    transform=transform
-)
-test_loader = torch.utils.data.DataLoader(testset, batch_size=100, shuffle=False)
-
 
 """
 VAE model components: Encoder, LatentZ, Decoder, and VAE class.
@@ -142,3 +122,55 @@ def plot_latent_umap(model, device, dataloader, img_size, fname='latent_umap.png
     plt.axis('off')
     plt.savefig(fname, bbox_inches='tight')
     plt.close()
+
+"""
+Training loop
+"""
+def train_vae(
+    data_dir_train, data_dir_test,
+    img_size=64, batch_size=128, test_batch=200,
+    hidden_size=512, latent_size=8,
+    lr=1e-3, epochs=30, beta=1.0,
+    device=None
+):
+    if device is None:
+        device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+    print("Using device:", device)
+
+    transform = transforms.Compose([
+        transforms.Resize((img_size, img_size)),
+        transforms.ToTensor()
+    ])
+
+    trainset = OASISDataset(data_dir_train, transform=transform)
+    train_loader = DataLoader(trainset, batch_size=batch_size, shuffle=True, num_workers=4, pin_memory=True)
+
+    testset = OASISDataset(data_dir_test, transform=transform)
+    test_loader = DataLoader(testset, batch_size=test_batch, shuffle=False, num_workers=2)
+
+    input_size = img_size * img_size
+    model = VAE(input_size=input_size, hidden_size=hidden_size, latent_size=latent_size).to(device)
+    optimizer = optim.Adam(model.parameters(), lr=lr)
+
+    for epoch in range(1, epochs+1):
+        model.train()
+        train_loss = 0.0
+        pbar = tqdm(train_loader, desc=f"Epoch {epoch}/{epochs}")
+        for batch in pbar:
+            batch = batch.to(device)
+            x = batch.view(batch.size(0), -1)
+            optimizer.zero_grad()
+            recon, mu, logvar, z = model(x)
+            loss, _, _ = vae_loss(recon, x, mu, logvar, beta=beta)
+            loss.backward()
+            optimizer.step()
+            train_loss += loss.item()
+            pbar.set_postfix({'loss': train_loss/(pbar.n+1)})
+
+        print(f"Epoch {epoch} avg loss per image: {train_loss/len(trainset):.4f}")
+
+    # Final latent visualization
+    plot_latent_umap(model, device, test_loader, img_size, fname='latent_umap.png')
+    print("Training finished. UMAP saved as latent_umap.png")
+
+    return model
