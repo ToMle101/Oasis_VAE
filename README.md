@@ -17,6 +17,15 @@ The model is trained on preprocessed MRI slices and visualizes the latent manifo
 ## 📂 Dataset
 
 The dataset used is the **OASIS MRI dataset**:
+
+example MRI slices: 
+<table>
+  <tr>
+    <td><img src="images/MRI_slice_1.png" alt="MRI Slice 1" width="400" height="300"></td>
+    <td><img src="images/MRI_slice_2.png" alt="MRI Slice 2" width="400" height="300"></td>
+  </tr>
+</table>
+
 https://filesender.aarnet.edu.au/?s=download&token=f7f699a7-5e9c-4723-a6ae-48b54375501a 
 
 ---
@@ -41,7 +50,9 @@ This balance encourages the model to learn a **smooth latent manifold**, making 
 
 ## 🏗️ Model Architecture
 
-The implementation consists of **three main modules**:
+The implementation consists of **three main components**:
+
+![Model](images/Screenshot%202025-09-18%20002226.png)
 
 ### 🔹 Encoder
 - Input: flattened 64×64 grayscale MRI slice → 4096 features.  
@@ -72,4 +83,18 @@ The implementation consists of **three main modules**:
 - **Output**: Reconstructed 64×64 MRI image.  
 
 ---
+## 📊 Latent Space Visualization (UMAP)
+
+One of the key outcomes of training the VAE is the ability to **map high-dimensional brain MRI data into a low-dimensional latent space**.  
+
+The figure below shows a **UMAP (Uniform Manifold Approximation and Projection)** projection of the latent space learned by the model:
+
+![Latent UMAP](images/latent_umap.png)
+
+### 🔎 Interpretation
+- Each point corresponds to the **latent representation** of one MRI slice.  
+- Clusters and curved structures indicate that the model has learned to **organize brain images into meaningful groups** in latent space.  
+- Points that are close together in this 2D plot represent MRI slices that are **similar in anatomy or intensity** in the original dataset.  
+- Gaps or distinct clusters suggest regions of latent space that correspond to different anatomical variations, preprocessing differences, or noise.  
+
   
